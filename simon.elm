@@ -5,6 +5,7 @@ import Random
 import Array
 import Animation exposing (px)
 import Color
+import Task
 
 
 main =
@@ -22,12 +23,10 @@ type alias Button =
 type Msg 
   = StartOver
   | NewValue Int
-  | ClickCero  
-  | ClickUno
-  | ClickDos
-  | ClickTres
+  | CheckMove Int  
   | Animate Animation.Msg
   | AnimateActive Int
+  | Play
 
 
 type alias Model =
@@ -43,24 +42,26 @@ update msg model =
   case msg of
     NewValue newValue ->
       ({model | sequence = Array.push newValue model.sequence}
-        , Cmd.none
-         )
+        , Cmd.none)--Task.perform Play )
+
+    Play ->
+      --Array.map (\element -> Task.perform AnimateActive element) model.sequence
+      (model, Cmd.none)
 
     StartOver ->
       init
 
-    ClickCero ->
-      checkMove 0 model
+    CheckMove buttonNumber ->
+      let
+        ok = Array.get model.userMoveNumber model.sequence
+          |> Maybe.map (\i -> i == buttonNumber)
+          |> Maybe.withDefault False
+      in
+        if ok then
+          goodMove model
+        else
+          wrongMove model
 
-    ClickUno ->
-      checkMove 1 model
-
-    ClickDos ->
-      checkMove 2 model
-
-    ClickTres ->
-      checkMove 3 model
-    
     Animate time ->
       ( { model
           | buttons =
@@ -113,18 +114,6 @@ onButtonStyle model index fn =
                 onStyle fn
     }
 
-checkMove : Int -> Model -> (Model, Cmd Msg)
-checkMove userMove model =
-  let
-    ok = Array.get model.userMoveNumber model.sequence
-          |> Maybe.map (\i -> i == userMove)
-          |> Maybe.withDefault False
-  in
-    if ok then
-      goodMove model
-    else
-      wrongMove model
-
 
 goodMove : Model -> (Model, Cmd Msg)
 goodMove model =
@@ -149,28 +138,28 @@ init =
       message="", 
       buttons =
         [ { label = "0"
-          , onClickAction = ClickCero
+          , onClickAction = CheckMove 0
           , onMouseDownAction = AnimateActive 0
           , style = Animation.style [Animation.backgroundColor Color.red]
           , color = Color.red
           , colorString = "red"
           }
         , { label = "1"
-          , onClickAction = ClickUno
+          , onClickAction = CheckMove 1
           , onMouseDownAction = AnimateActive 1
           , style = Animation.style [Animation.backgroundColor Color.green]
           , color = Color.green
           , colorString = "green"
           }
         , { label = "2"
-          , onClickAction = ClickDos
+          , onClickAction = CheckMove 2
           , onMouseDownAction = AnimateActive 2
           , style = Animation.style [Animation.backgroundColor Color.blue]
           , color = Color.blue
           , colorString = "blue"
           }
         , { label = "3"
-          , onClickAction = ClickTres
+          , onClickAction = CheckMove 3
           , onMouseDownAction = AnimateActive 3
           , style = Animation.style [Animation.backgroundColor Color.yellow]
           , color = Color.yellow
@@ -200,7 +189,10 @@ viewButton : Button -> Html Msg
 viewButton button =
     div
         (Animation.render button.style
-            ++ [ style [ ( "backgroundColor", button.colorString ) ]
+            ++ [ style 
+                  [ ( "backgroundColor", button.colorString )
+                  , ("padding", "8px")
+                  , ("display", "inline")]
               , Html.Events.onMouseDown  (button.onMouseDownAction)
               , onClick (button.onClickAction)
             ]

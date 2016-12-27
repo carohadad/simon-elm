@@ -15834,7 +15834,15 @@ var _user$project$Main$viewButton = function (button) {
 					{
 						ctor: '::',
 						_0: {ctor: '_Tuple2', _0: 'backgroundColor', _1: button.colorString},
-						_1: {ctor: '[]'}
+						_1: {
+							ctor: '::',
+							_0: {ctor: '_Tuple2', _0: 'padding', _1: '8px'},
+							_1: {
+								ctor: '::',
+								_0: {ctor: '_Tuple2', _0: 'display', _1: 'inline'},
+								_1: {ctor: '[]'}
+							}
+						}
 					}),
 				_1: {
 					ctor: '::',
@@ -15899,6 +15907,7 @@ var _user$project$Main$Model = F4(
 	function (a, b, c, d) {
 		return {sequence: a, userMoveNumber: b, message: c, buttons: d};
 	});
+var _user$project$Main$Play = {ctor: 'Play'};
 var _user$project$Main$AnimateActive = function (a) {
 	return {ctor: 'AnimateActive', _0: a};
 };
@@ -15916,10 +15925,9 @@ var _user$project$Main$subscriptions = function (model) {
 			},
 			model.buttons));
 };
-var _user$project$Main$ClickTres = {ctor: 'ClickTres'};
-var _user$project$Main$ClickDos = {ctor: 'ClickDos'};
-var _user$project$Main$ClickUno = {ctor: 'ClickUno'};
-var _user$project$Main$ClickCero = {ctor: 'ClickCero'};
+var _user$project$Main$CheckMove = function (a) {
+	return {ctor: 'CheckMove', _0: a};
+};
 var _user$project$Main$NewValue = function (a) {
 	return {ctor: 'NewValue', _0: a};
 };
@@ -15944,19 +15952,6 @@ var _user$project$Main$goodMove = function (model) {
 		_1: _elm_lang$core$Platform_Cmd$none
 	};
 };
-var _user$project$Main$checkMove = F2(
-	function (userMove, model) {
-		var ok = A2(
-			_elm_lang$core$Maybe$withDefault,
-			false,
-			A2(
-				_elm_lang$core$Maybe$map,
-				function (i) {
-					return _elm_lang$core$Native_Utils.eq(i, userMove);
-				},
-				A2(_elm_lang$core$Array$get, model.userMoveNumber, model.sequence)));
-		return ok ? _user$project$Main$goodMove(model) : _user$project$Main$wrongMove(model);
-	});
 var _user$project$Main$init = {
 	ctor: '_Tuple2',
 	_0: {
@@ -15967,7 +15962,7 @@ var _user$project$Main$init = {
 			ctor: '::',
 			_0: {
 				label: '0',
-				onClickAction: _user$project$Main$ClickCero,
+				onClickAction: _user$project$Main$CheckMove(0),
 				onMouseDownAction: _user$project$Main$AnimateActive(0),
 				style: _mdgriffith$elm_style_animation$Animation$style(
 					{
@@ -15982,7 +15977,7 @@ var _user$project$Main$init = {
 				ctor: '::',
 				_0: {
 					label: '1',
-					onClickAction: _user$project$Main$ClickUno,
+					onClickAction: _user$project$Main$CheckMove(1),
 					onMouseDownAction: _user$project$Main$AnimateActive(1),
 					style: _mdgriffith$elm_style_animation$Animation$style(
 						{
@@ -15997,7 +15992,7 @@ var _user$project$Main$init = {
 					ctor: '::',
 					_0: {
 						label: '2',
-						onClickAction: _user$project$Main$ClickDos,
+						onClickAction: _user$project$Main$CheckMove(2),
 						onMouseDownAction: _user$project$Main$AnimateActive(2),
 						style: _mdgriffith$elm_style_animation$Animation$style(
 							{
@@ -16012,7 +16007,7 @@ var _user$project$Main$init = {
 						ctor: '::',
 						_0: {
 							label: '3',
-							onClickAction: _user$project$Main$ClickTres,
+							onClickAction: _user$project$Main$CheckMove(3),
 							onMouseDownAction: _user$project$Main$AnimateActive(3),
 							style: _mdgriffith$elm_style_animation$Animation$style(
 								{
@@ -16048,16 +16043,21 @@ var _user$project$Main$update = F2(
 						}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
+			case 'Play':
+				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 			case 'StartOver':
 				return _user$project$Main$init;
-			case 'ClickCero':
-				return A2(_user$project$Main$checkMove, 0, model);
-			case 'ClickUno':
-				return A2(_user$project$Main$checkMove, 1, model);
-			case 'ClickDos':
-				return A2(_user$project$Main$checkMove, 2, model);
-			case 'ClickTres':
-				return A2(_user$project$Main$checkMove, 3, model);
+			case 'CheckMove':
+				var ok = A2(
+					_elm_lang$core$Maybe$withDefault,
+					false,
+					A2(
+						_elm_lang$core$Maybe$map,
+						function (i) {
+							return _elm_lang$core$Native_Utils.eq(i, _p0._0);
+						},
+						A2(_elm_lang$core$Array$get, model.userMoveNumber, model.sequence)));
+				return ok ? _user$project$Main$goodMove(model) : _user$project$Main$wrongMove(model);
 			case 'Animate':
 				return {
 					ctor: '_Tuple2',
