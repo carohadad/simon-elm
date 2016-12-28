@@ -15899,6 +15899,27 @@ var _user$project$Main$onButtonStyle = F3(
 					_user$project$Main$onStyle(fn))
 			});
 	});
+var _user$project$Main$andThen = F2(
+	function (_p0, advance) {
+		var _p1 = _p0;
+		var _p2 = advance(_p1._0);
+		var newModel = _p2._0;
+		var cmd2 = _p2._1;
+		return {
+			ctor: '_Tuple2',
+			_0: newModel,
+			_1: _elm_lang$core$Platform_Cmd$batch(
+				{
+					ctor: '::',
+					_0: _p1._1,
+					_1: {
+						ctor: '::',
+						_0: cmd2,
+						_1: {ctor: '[]'}
+					}
+				})
+		};
+	});
 var _user$project$Main$Button = F6(
 	function (a, b, c, d, e, f) {
 		return {label: a, onClickAction: b, onMouseDownAction: c, style: d, color: e, colorString: f};
@@ -15907,7 +15928,9 @@ var _user$project$Main$Model = F4(
 	function (a, b, c, d) {
 		return {sequence: a, userMoveNumber: b, message: c, buttons: d};
 	});
-var _user$project$Main$Play = {ctor: 'Play'};
+var _user$project$Main$Play = function (a) {
+	return {ctor: 'Play', _0: a};
+};
 var _user$project$Main$AnimateActive = function (a) {
 	return {ctor: 'AnimateActive', _0: a};
 };
@@ -16031,20 +16054,47 @@ var _user$project$Main$init = {
 };
 var _user$project$Main$update = F2(
 	function (msg, model) {
-		var _p0 = msg;
-		switch (_p0.ctor) {
+		var _p3 = msg;
+		switch (_p3.ctor) {
 			case 'NewValue':
+				var _p4 = A2(
+					_user$project$Main$update,
+					_user$project$Main$Play(0),
+					model);
+				var newModel = _p4._0;
+				var cmd = _p4._1;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
-						model,
+						newModel,
 						{
-							sequence: A2(_elm_lang$core$Array$push, _p0._0, model.sequence)
+							sequence: A2(_elm_lang$core$Array$push, _p3._0, model.sequence)
 						}),
-					_1: _elm_lang$core$Platform_Cmd$none
+					_1: cmd
 				};
 			case 'Play':
-				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+				var _p6 = _p3._0;
+				if (_elm_lang$core$Native_Utils.eq(
+					_p6,
+					_elm_lang$core$Array$length(model.sequence))) {
+					return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+				} else {
+					var buttonToAnimate = A2(
+						_elm_lang$core$Maybe$withDefault,
+						4,
+						A2(_elm_lang$core$Array$get, _p6, model.sequence));
+					var _p5 = A2(
+						_user$project$Main$update,
+						_user$project$Main$AnimateActive(buttonToAnimate),
+						model);
+					var newModel = _p5._0;
+					var cmd = _p5._1;
+					return A2(
+						_user$project$Main$andThen,
+						{ctor: '_Tuple2', _0: newModel, _1: cmd},
+						_user$project$Main$update(
+							_user$project$Main$Play(_p6 + 1)));
+				}
 			case 'StartOver':
 				return _user$project$Main$init;
 			case 'CheckMove':
@@ -16054,7 +16104,7 @@ var _user$project$Main$update = F2(
 					A2(
 						_elm_lang$core$Maybe$map,
 						function (i) {
-							return _elm_lang$core$Native_Utils.eq(i, _p0._0);
+							return _elm_lang$core$Native_Utils.eq(i, _p3._0);
 						},
 						A2(_elm_lang$core$Array$get, model.userMoveNumber, model.sequence)));
 				return ok ? _user$project$Main$goodMove(model) : _user$project$Main$wrongMove(model);
@@ -16067,13 +16117,13 @@ var _user$project$Main$update = F2(
 							buttons: A2(
 								_elm_lang$core$List$map,
 								_user$project$Main$onStyle(
-									_mdgriffith$elm_style_animation$Animation$update(_p0._0)),
+									_mdgriffith$elm_style_animation$Animation$update(_p3._0)),
 								model.buttons)
 						}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			default:
-				var _p1 = _p0._0;
+				var _p7 = _p3._0;
 				var currentButtonColor = A2(
 					_elm_lang$core$Maybe$withDefault,
 					_elm_lang$core$Color$white,
@@ -16084,15 +16134,15 @@ var _user$project$Main$update = F2(
 						},
 						A2(
 							_elm_lang$core$Array$get,
-							_p1,
+							_p7,
 							_elm_lang$core$Array$fromList(model.buttons))));
 				return {
 					ctor: '_Tuple2',
 					_0: A3(
 						_user$project$Main$onButtonStyle,
 						model,
-						_p1,
-						_mdgriffith$elm_style_animation$Animation$interrupt(
+						_p7,
+						_mdgriffith$elm_style_animation$Animation$queue(
 							{
 								ctor: '::',
 								_0: _mdgriffith$elm_style_animation$Animation$to(

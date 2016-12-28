@@ -7,7 +7,6 @@ import Animation exposing (px)
 import Color
 import Task
 
-
 main =
   Html.program { init = init, view = view, update = update, subscriptions = subscriptions }
 
@@ -26,7 +25,7 @@ type Msg
   | CheckMove Int  
   | Animate Animation.Msg
   | AnimateActive Int
-  | Play
+  | Play Int
 
 
 type alias Model =
@@ -37,16 +36,33 @@ type alias Model =
     buttons : List Button
   }
 
+-- idea from http://folkertdev.nl/blog/task-perform-with-task-succeed/
+andThen : ( Model, Cmd msg ) -> ( Model -> ( Model, Cmd msg ) ) -> ( Model, Cmd msg ) 
+andThen ( beginModel, cmd1 )  advance = 
+    let 
+        ( newModel, cmd2 ) = advance beginModel
+    in 
+        ( newModel, Cmd.batch [ cmd1, cmd2 ] ) 
+
+
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     NewValue newValue ->
-      ({model | sequence = Array.push newValue model.sequence}
-        , Cmd.none)--Task.perform Play )
+      let 
+       (newModel, cmd) = update (Play 0) model
+      in
+        ({newModel | sequence = Array.push newValue model.sequence}, cmd)
 
-    Play ->
-      --Array.map (\element -> Task.perform AnimateActive element) model.sequence
-      (model, Cmd.none)
+    Play index ->
+      if (index == (Array.length model.sequence)) then
+        (model, Cmd.none)
+      else
+        let
+          buttonToAnimate = Array.get index model.sequence |> Maybe.withDefault 4
+          (newModel, cmd) = (update (AnimateActive buttonToAnimate) model)
+        in
+          andThen (newModel, cmd) (update (Play (index+1)))
 
     StartOver ->
       init
@@ -79,7 +95,7 @@ update msg model =
 
       in 
       ( onButtonStyle model index <|
-                (Animation.interrupt
+                (Animation.queue
                     [ Animation.to
                         [ Animation.backgroundColor Color.white ]
                     , Animation.set
@@ -198,4 +214,3 @@ viewButton button =
             ]
         )
         [ text button.label ]
-
