@@ -3,9 +3,12 @@ import Html.Events exposing (onClick, onMouseDown)
 import Html.Attributes exposing (style)
 import Random 
 import Array
-import Animation exposing (px)
+import Animation 
 import Color
 import Task
+import Time exposing (second)
+import Debug
+
 
 main =
   Html.program { init = init, view = view, update = update, subscriptions = subscriptions }
@@ -24,7 +27,7 @@ type Msg
   | NewValue Int
   | CheckMove Int  
   | Animate Animation.Msg
-  | AnimateActive Int
+  | AnimateActive Int Int
   | Play Int
 
 
@@ -50,19 +53,19 @@ update msg model =
   case msg of
     NewValue newValue ->
       let 
-       (newModel, cmd) = update (Play 0) model
+        updatedModel = {model | sequence = Array.push newValue model.sequence}
       in
-        ({newModel | sequence = Array.push newValue model.sequence}, cmd)
+        update (Play 0) updatedModel
 
     Play index ->
-      if (index == (Array.length model.sequence)) then
-        (model, Cmd.none)
-      else
-        let
-          buttonToAnimate = Array.get index model.sequence |> Maybe.withDefault 4
-          (newModel, cmd) = (update (AnimateActive buttonToAnimate) model)
-        in
-          andThen (newModel, cmd) (update (Play (index+1)))
+      let
+        buttonToAnimate = Array.get index model.sequence |> Maybe.withDefault 4 -- TODO: this is horrible
+        (newModel, cmd) = (update (AnimateActive buttonToAnimate index) model)
+      in 
+        if (reachedEndOfSequence index model.sequence) then
+          ({ newModel | message = "Playing " ++ (toString buttonToAnimate)}, Cmd.none)
+        else
+          andThen ({ newModel | message = "Playing " ++ (toString buttonToAnimate)}, cmd) (update (Play (index+1)))
 
     StartOver ->
       init
@@ -88,15 +91,17 @@ update msg model =
       , Cmd.none
       )
 
-    AnimateActive index ->
-      let currentButtonColor = Array.get index (Array.fromList model.buttons)
+    AnimateActive indexButton delay ->
+      let currentButtonColor = Array.get indexButton (Array.fromList model.buttons)
         |> Maybe.map (\button -> button.color)
         |> Maybe.withDefault Color.white
 
       in 
-      ( onButtonStyle model index <|
+      ( onButtonStyle model indexButton <|
                 (Animation.queue
-                    [ Animation.to
+                    [ 
+                    Animation.wait (toFloat delay * 1 * second)
+                    , Animation.to
                         [ Animation.backgroundColor Color.white ]
                     , Animation.set
                         [ Animation.backgroundColor currentButtonColor ]
@@ -104,6 +109,11 @@ update msg model =
                 )
             , Cmd.none
             )
+
+
+reachedEndOfSequence : Int -> Array.Array Int -> Bool
+reachedEndOfSequence index sequence = 
+  (index+1 == Array.length sequence)
 
 --- ref: https://github.com/mdgriffith/elm-style-animation/blob/master/examples/Showcase.elm
 onStyle : (Animation.State -> Animation.State) -> Button -> Button
@@ -123,23 +133,20 @@ onIndex i list fn =
         list
 
 onButtonStyle : Model -> Int -> (Animation.State -> Animation.State) -> Model
-onButtonStyle model index fn =
+onButtonStyle model buttonIndex fn =
     { model
         | buttons =
-            onIndex index model.buttons <|
+            onIndex buttonIndex model.buttons <|
                 onStyle fn
     }
 
 
 goodMove : Model -> (Model, Cmd Msg)
 goodMove model =
-  let reachedEndOfSequence = model.userMoveNumber+1 == Array.length model.sequence
-
-  in 
-    if reachedEndOfSequence then
-      ({ model | userMoveNumber = 0, message = "Yay! Next Level!"}, Random.generate NewValue (Random.int 0 3))
-    else
-      ({ model | userMoveNumber = model.userMoveNumber+1, message = "Keep Going!" }, Cmd.none)
+  if (reachedEndOfSequence model.userMoveNumber model.sequence) then
+    ({ model | userMoveNumber = 0, message = "Yay! Next Level!"}, Random.generate NewValue (Random.int 0 3))
+  else
+    ({ model | userMoveNumber = model.userMoveNumber+1, message = "Keep Going!" }, Cmd.none)
 
 wrongMove : Model -> (Model, Cmd Msg)
 wrongMove model = ({ model |  message = "Wrong!! You lose :( ", userMoveNumber = 0, sequence = Array.empty }, Cmd.none)
@@ -155,28 +162,28 @@ init =
       buttons =
         [ { label = "0"
           , onClickAction = CheckMove 0
-          , onMouseDownAction = AnimateActive 0
+          , onMouseDownAction = AnimateActive 0 0
           , style = Animation.style [Animation.backgroundColor Color.red]
           , color = Color.red
           , colorString = "red"
           }
         , { label = "1"
           , onClickAction = CheckMove 1
-          , onMouseDownAction = AnimateActive 1
+          , onMouseDownAction = AnimateActive 1 0 
           , style = Animation.style [Animation.backgroundColor Color.green]
           , color = Color.green
           , colorString = "green"
           }
         , { label = "2"
           , onClickAction = CheckMove 2
-          , onMouseDownAction = AnimateActive 2
+          , onMouseDownAction = AnimateActive 2 0
           , style = Animation.style [Animation.backgroundColor Color.blue]
           , color = Color.blue
           , colorString = "blue"
           }
         , { label = "3"
           , onClickAction = CheckMove 3
-          , onMouseDownAction = AnimateActive 3
+          , onMouseDownAction = AnimateActive 3 0
           , style = Animation.style [Animation.backgroundColor Color.yellow]
           , color = Color.yellow
           , colorString = "yellow"
@@ -195,7 +202,7 @@ view : Model -> Html Msg
 view model =
   div []
     [ button [ onClick StartOver ] [ text "StartOver" ]
-    , div [] [ text (toString model.sequence) ] 
+    --, div [] [ text (toString model.sequence) ] 
     , div [] [ text ("Score: " ++ toString (Array.length model.sequence))]
     , div [] [ text ("Message: " ++ toString model.message)] 
     , div [] (List.map viewButton model.buttons)
