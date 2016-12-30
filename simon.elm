@@ -7,19 +7,17 @@ import Animation
 import Color
 import Task
 import Time exposing (second)
-import Debug
 
 
 main =
   Html.program { init = init, view = view, update = update, subscriptions = subscriptions }
 
 type alias Button =
-  { label : String
+  { label : String --for debugging purposes
   , onClickAction : Msg
   , onMouseDownAction : Msg
   , style : Animation.State
   , color : Color.Color
-  , colorString : String
   }
 
 type Msg 
@@ -39,7 +37,7 @@ type alias Model =
     buttons : List Button
   }
 
--- idea from http://folkertdev.nl/blog/task-perform-with-task-succeed/
+-- ref: http://folkertdev.nl/blog/task-perform-with-task-succeed/
 andThen : ( Model, Cmd msg ) -> ( Model -> ( Model, Cmd msg ) ) -> ( Model, Cmd msg ) 
 andThen ( beginModel, cmd1 )  advance = 
     let 
@@ -58,15 +56,18 @@ update msg model =
         update (Play 0) updatedModel
 
     Play index ->
-      let
-        buttonToAnimate = Array.get index model.sequence |> Maybe.withDefault 4 -- TODO: this is horrible
-        (newModel, cmd) = (update (AnimateActive buttonToAnimate index) model)
-      in 
-        if (reachedEndOfSequence index model.sequence) then
-          ({ newModel | message = "Playing " ++ (toString buttonToAnimate)}, Cmd.none)
-        else
-          andThen ({ newModel | message = "Playing " ++ (toString buttonToAnimate)}, cmd) (update (Play (index+1)))
-
+      case Array.get index model.sequence of 
+          Just buttonToAnimate -> 
+            let 
+              (newModel, cmd) = (update (AnimateActive buttonToAnimate index) model)
+            in 
+              if (reachedEndOfSequence index model.sequence) then
+                ({ newModel | message = "Playing " ++ (toString buttonToAnimate)}, Cmd.none)
+              else
+                andThen ({ newModel | message = "Playing " ++ (toString buttonToAnimate)}, cmd) (update (Play (index+1)))
+          Nothing -> 
+            ({model| message = "Unexpected error: index out of range in Play function"}, Cmd.none)
+        
     StartOver ->
       init
 
@@ -165,28 +166,24 @@ init =
           , onMouseDownAction = AnimateActive 0 0
           , style = Animation.style [Animation.backgroundColor Color.red]
           , color = Color.red
-          , colorString = "red"
           }
         , { label = "1"
           , onClickAction = CheckMove 1
           , onMouseDownAction = AnimateActive 1 0 
           , style = Animation.style [Animation.backgroundColor Color.green]
           , color = Color.green
-          , colorString = "green"
           }
         , { label = "2"
           , onClickAction = CheckMove 2
           , onMouseDownAction = AnimateActive 2 0
           , style = Animation.style [Animation.backgroundColor Color.blue]
           , color = Color.blue
-          , colorString = "blue"
           }
         , { label = "3"
           , onClickAction = CheckMove 3
           , onMouseDownAction = AnimateActive 3 0
           , style = Animation.style [Animation.backgroundColor Color.yellow]
           , color = Color.yellow
-          , colorString = "yellow"
           }
         ]
     }, 
@@ -200,24 +197,48 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-  div []
-    [ button [ onClick StartOver ] [ text "StartOver" ]
-    --, div [] [ text (toString model.sequence) ] 
-    , div [] [ text ("Score: " ++ toString (Array.length model.sequence))]
+  div [style [
+    ("position", "absolute")
+    , ("top", "0")
+    , ("bottom", "0")
+    , ("left", "0")
+    , ("right", "0")
+    , ("margin", "auto")
+    , ("width", "500px")
+    , ("height", "500px")
+  ]]
+    [ 
+     div [] [ text ("Score: " ++ toString ((Array.length model.sequence)-1))]
     , div [] [ text ("Message: " ++ toString model.message)] 
-    , div [] (List.map viewButton model.buttons)
+    , div [ style [
+    ("width", "250px")
+    , ("height", "250px")
+    , ("border-radius", "125px")
+    , ("background", "black")
+    ]] 
+    [ 
+      div [] [
+        div [] (List.map viewButton (List.take 2 model.buttons))
+        , div [] (List.map viewButton (List.drop 2 model.buttons))
+      ] 
     ]
+    , button [ onClick StartOver ] [ text "StartOver" ]
+    ]
+
 
 viewButton : Button -> Html Msg
 viewButton button =
     div
         (Animation.render button.style
             ++ [ style 
-                  [ ( "backgroundColor", button.colorString )
-                  , ("padding", "8px")
-                  , ("display", "inline")]
-              , Html.Events.onMouseDown  (button.onMouseDownAction)
+                  [ ("padding", "8px")
+                  , ("width", "40px")
+                  , ("height", "40px")
+                  , ("border-radius", "10px")
+                  , ("display", "inline-block")]
+
+              , Html.Events.onMouseDown (button.onMouseDownAction)
               , onClick (button.onClickAction)
             ]
         )
-        [ text button.label ]
+        [ ]
