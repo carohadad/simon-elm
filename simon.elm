@@ -1,7 +1,7 @@
 module Main exposing (..)
 
 import Html exposing (Html, button, div, text)
-import Html.Events exposing (onClick, onMouseDown)
+import Html.Events exposing (onClick)
 import Html.Attributes exposing (style)
 import Random
 import Array
@@ -21,7 +21,6 @@ type alias Button =
         String
         --for debugging purposes
     , onClickAction : Msg
-    , onMouseDownAction : Msg
     , style : Animation.State
     , color : Color.Color
     }
@@ -93,9 +92,9 @@ update msg model =
                         |> Maybe.withDefault False
             in
                 if ok then
-                    goodMove model
+                    andThen (goodMove model) (update (AnimateActive buttonNumber 0))
                 else
-                    wrongMove model
+                    andThen (wrongMove model) (update (AnimateActive buttonNumber 0))
 
         Animate time ->
             ( { model
@@ -183,25 +182,21 @@ init =
       , buttons =
             [ { label = "0"
               , onClickAction = CheckMove 0
-              , onMouseDownAction = AnimateActive 0 0
               , style = Animation.style [ Animation.backgroundColor Color.red ]
               , color = Color.red
               }
             , { label = "1"
               , onClickAction = CheckMove 1
-              , onMouseDownAction = AnimateActive 1 0
               , style = Animation.style [ Animation.backgroundColor Color.green ]
               , color = Color.green
               }
             , { label = "2"
               , onClickAction = CheckMove 2
-              , onMouseDownAction = AnimateActive 2 0
               , style = Animation.style [ Animation.backgroundColor Color.blue ]
               , color = Color.blue
               }
             , { label = "3"
               , onClickAction = CheckMove 3
-              , onMouseDownAction = AnimateActive 3 0
               , style = Animation.style [ Animation.backgroundColor Color.yellow ]
               , color = Color.yellow
               }
@@ -260,7 +255,6 @@ viewButton button =
                     , display inlineBlock
                     , margin (px 10)
                     ]
-               , Html.Events.onMouseDown (button.onMouseDownAction)
                , onClick (button.onClickAction)
                ]
         )
