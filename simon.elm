@@ -7,7 +7,6 @@ import Random
 import Array
 import Animation
 import Color
-import Task
 import Time exposing (second)
 import Css exposing (..)
 
@@ -74,9 +73,9 @@ update msg model =
                             (update (AnimateActive buttonToAnimate index) model)
                     in
                         if (reachedEndOfSequence index model.sequence) then
-                            ( { newModel | message = "Playing " ++ (toString buttonToAnimate) }, Cmd.none )
+                            ( newModel, Cmd.none )
                         else
-                            andThen ( { newModel | message = "Playing " ++ (toString buttonToAnimate) }, cmd ) (update (Play (index + 1)))
+                            andThen ( newModel, cmd ) (update (Play (index + 1)))
 
                 Nothing ->
                     ( { model | message = "Unexpected error: index out of range in Play function" }, Cmd.none )
@@ -114,11 +113,11 @@ update msg model =
                         |> Maybe.withDefault Color.white
             in
                 ( onButtonStyle model indexButton <|
-                    (Animation.queue
-                        [ Animation.wait (toFloat delay * 1 * second)
+                    (Animation.interrupt
+                        [ Animation.wait (toFloat delay * 0.8 * second)
                         , Animation.to
                             [ Animation.backgroundColor Color.white ]
-                        , Animation.set
+                        , Animation.to
                             [ Animation.backgroundColor currentButtonColor ]
                         ]
                     )
@@ -171,7 +170,7 @@ goodMove model =
 
 wrongMove : Model -> ( Model, Cmd Msg )
 wrongMove model =
-    ( { model | message = "Wrong!! You lose :( ", userMoveNumber = 0, sequence = Array.empty }, Cmd.none )
+    ( { model | message = "Wrong!! You lose :( " }, Cmd.none )
 
 
 init : ( Model, Cmd Msg )
@@ -180,22 +179,22 @@ init =
       , userMoveNumber = 0
       , message = ""
       , buttons =
-            [ { label = "0"
+            [ { label = "red"
               , onClickAction = CheckMove 0
               , style = Animation.style [ Animation.backgroundColor Color.red ]
               , color = Color.red
               }
-            , { label = "1"
+            , { label = "green"
               , onClickAction = CheckMove 1
               , style = Animation.style [ Animation.backgroundColor Color.green ]
               , color = Color.green
               }
-            , { label = "2"
+            , { label = "blue"
               , onClickAction = CheckMove 2
               , style = Animation.style [ Animation.backgroundColor Color.blue ]
               , color = Color.blue
               }
-            , { label = "3"
+            , { label = "yellow"
               , onClickAction = CheckMove 3
               , style = Animation.style [ Animation.backgroundColor Color.yellow ]
               , color = Color.yellow
