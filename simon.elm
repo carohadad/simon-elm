@@ -7,6 +7,7 @@ import Animation
 import Color
 import Task
 import Time exposing (second)
+import Css exposing (..)
 
 
 main =
@@ -195,34 +196,26 @@ subscriptions model =
     Animation.subscription Animate <|
         List.map .style model.buttons
 
+
+styles =
+    Css.asPairs >> Html.Attributes.style
+
 view : Model -> Html Msg
 view model =
-  div [style [
-    ("position", "absolute")
-    , ("top", "0")
-    , ("bottom", "0")
-    , ("left", "0")
-    , ("right", "0")
-    , ("margin", "auto")
-    , ("width", "500px")
-    , ("height", "500px")
-  ]]
+  div [styles [displayFlex, flexDirection column, flexWrap wrap, property "justify-content" "center", alignItems center]]
     [ 
-     div [] [ text ("Score: " ++ toString ((Array.length model.sequence)-1))]
-    , div [] [ text ("Message: " ++ toString model.message)] 
-    , div [ style [
-    ("width", "250px")
-    , ("height", "250px")
-    , ("border-radius", "125px")
-    , ("background", "black")
-    ]] 
-    [ 
-      div [] [
-        div [] (List.map viewButton (List.take 2 model.buttons))
-        , div [] (List.map viewButton (List.drop 2 model.buttons))
-      ] 
-    ]
-    , button [ onClick StartOver ] [ text "StartOver" ]
+     div [] [ Html.text ("Score: " ++ toString ((Array.length model.sequence)-1))]
+    , div [] [ Html.text ("Message: " ++ toString model.message)] 
+    , div [ styles [ width (px 200), height (px 200) 
+      , borderRadius (px 50), backgroundColor (hex "000")
+      , displayFlex, flexDirection row, flexWrap wrap, property "justify-content" "center", alignItems center]]
+      [ 
+        div [] [
+          div [] (List.map viewButton (List.take 2 model.buttons))
+          , div [] (List.map viewButton (List.drop 2 model.buttons))
+        ] 
+      ]
+    , button [ onClick StartOver ] [ Html.text "StartOver" ]
     ]
 
 
@@ -230,13 +223,8 @@ viewButton : Button -> Html Msg
 viewButton button =
     div
         (Animation.render button.style
-            ++ [ style 
-                  [ ("padding", "8px")
-                  , ("width", "40px")
-                  , ("height", "40px")
-                  , ("border-radius", "10px")
-                  , ("display", "inline-block")]
-
+            ++ [ styles [ padding (px 8), width (px 40), height (px 40)
+                  , borderRadius (px 10), display inlineBlock, margin (px 10) ] 
               , Html.Events.onMouseDown (button.onMouseDownAction)
               , onClick (button.onClickAction)
             ]
