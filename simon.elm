@@ -18,7 +18,7 @@ main =
 type alias Button =
     { label :
         String
-        --for debugging purposes
+        --for debugging purposes, not used in the program
     , onClickAction : Msg
     , style : Animation.State
     , color : Color.Color
@@ -35,14 +35,23 @@ type Msg
 
 
 type alias Model =
-    { sequence : Array.Array Int
-    , userMoveNumber : Int
-    , message : String
-    , buttons : List Button
+    { sequence :
+        Array.Array Int
+        -- Contains the right sequence that needs to be played by the user in each level
+    , userMoveNumber :
+        Int
+        -- Index of the last correct move that the user clicked
+    , message :
+        String
+        -- Message to user
+    , buttons :
+        List Button
+        --
     }
 
 
 
+-- This is a pattern that I use often, I extracted the behaviour into this function for readability
 -- ref: http://folkertdev.nl/blog/task-perform-with-task-succeed/
 
 
@@ -58,13 +67,15 @@ andThen ( beginModel, cmd1 ) advance =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        -- New randomly generated value added to the sequence after a level is completed
+        -- Since is the beggining of a new level, all sequence (including the new value)
+        -- needs to be played starting from the beggining (index = 0)
         NewValue newValue ->
-            let
-                updatedModel =
-                    { model | sequence = Array.push newValue model.sequence }
-            in
-                update (Play 0) updatedModel
+            andThen ( { model | sequence = Array.push newValue model.sequence }, Cmd.none ) (update (Play 0))
 
+        -- This function animates the whole sequence by playing each element in the sequence in order
+        -- This is a recursive function that "ends" when the index reaches the last element of the sequence (index = sequence's length + 1)
+        -- this is why the index is always in range, and the Nothing branch never gets executed.
         Play index ->
             case Array.get index model.sequence of
                 Just buttonToAnimate ->
@@ -80,21 +91,26 @@ update msg model =
                 Nothing ->
                     ( { model | message = "Unexpected error: index out of range in Play function" }, Cmd.none )
 
+        -- This resets the whole game
         StartOver ->
             init
 
+        -- This checks if the button clicked by the user is the one that she is supposed to click in this turn
+        -- The button gets animated to simulate a physical button pressed
         CheckMove buttonNumber ->
             let
-                ok =
+                correctMove =
                     Array.get model.userMoveNumber model.sequence
                         |> Maybe.map (\i -> i == buttonNumber)
                         |> Maybe.withDefault False
             in
-                if ok then
+                if correctMove then
                     andThen (goodMove model) (update (AnimateActive buttonNumber 0))
                 else
                     andThen (wrongMove model) (update (AnimateActive buttonNumber 0))
 
+        -- helper message to animate each button style
+        -- ref: https://github.com/mdgriffith/elm-style-animation/blob/master/examples/Showcase.elm
         Animate time ->
             ( { model
                 | buttons =
@@ -105,6 +121,8 @@ update msg model =
             , Cmd.none
             )
 
+        -- Animation that simulates a physical click.
+        -- This gets call when the user presses a button or when playing the whole sequence for each new level
         AnimateActive indexButton delay ->
             let
                 currentButtonColor =
@@ -131,12 +149,18 @@ reachedEndOfSequence index sequence =
 
 
 
---- ref: https://github.com/mdgriffith/elm-style-animation/blob/master/examples/Showcase.elm
+-- This is a helper function to perform the animation on the correct button
+-- ref: https://github.com/mdgriffith/elm-style-animation/blob/master/examples/Showcase.elm
 
 
 onStyle : (Animation.State -> Animation.State) -> Button -> Button
 onStyle styleFn button =
     { button | style = styleFn button.style }
+
+
+
+-- This is a helper function to perform the animation on the correct button
+-- ref: https://github.com/mdgriffith/elm-style-animation/blob/master/examples/Showcase.elm
 
 
 onIndex : Int -> List a -> (a -> a) -> List a
@@ -151,6 +175,11 @@ onIndex i list fn =
         list
 
 
+
+-- This is a helper function to perform the animation on the correct button
+-- ref: https://github.com/mdgriffith/elm-style-animation/blob/master/examples/Showcase.elm
+
+
 onButtonStyle : Model -> Int -> (Animation.State -> Animation.State) -> Model
 onButtonStyle model buttonIndex fn =
     { model
@@ -160,12 +189,20 @@ onButtonStyle model buttonIndex fn =
     }
 
 
+
+-- If the move was correct we need to inform the user and (if the level was completed) generate a new random value for the sequence
+
+
 goodMove : Model -> ( Model, Cmd Msg )
 goodMove model =
     if (reachedEndOfSequence model.userMoveNumber model.sequence) then
         ( { model | userMoveNumber = 0, message = "Yay! Next Level!" }, Random.generate NewValue (Random.int 0 3) )
     else
         ( { model | userMoveNumber = model.userMoveNumber + 1, message = "Keep Going!" }, Cmd.none )
+
+
+
+-- just for redability
 
 
 wrongMove : Model -> ( Model, Cmd Msg )
@@ -211,8 +248,19 @@ subscriptions model =
         List.map .style model.buttons
 
 
+
+-- Helper for adding styles in a purely fuctional way
+-- ref: https://github.com/rtfeldman/elm-css#approach-1-inline-styles
+
+
 styles =
     Css.asPairs >> Html.Attributes.style
+
+
+
+-- using justify-content as a property looses type-safety but the native version is not implemented yet in the elm-csslibrary
+-- reason: https://github.com/rtfeldman/elm-css/issues/198
+-- ref: https://github.com/rtfeldman/elm-css/#missing-css-properties
 
 
 view : Model -> Html Msg
@@ -238,7 +286,7 @@ view model =
                 , div [] (List.map viewButton (List.drop 2 model.buttons))
                 ]
             ]
-        , button [ onClick StartOver ] [ Html.text "StartOver" ]
+        , button [ onClick StartOver ] [ Html.text "Start Over" ]
         ]
 
 
