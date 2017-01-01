@@ -80,8 +80,9 @@ update msg model =
             case Array.get index model.sequence of
                 Just buttonToAnimate ->
                     let
+                        -- index+1 so the first Animation does not overlap with the user's click animation
                         ( newModel, cmd ) =
-                            (update (AnimateActive buttonToAnimate index) model)
+                            (update (AnimateActive buttonToAnimate (index + 1)) model)
                     in
                         if (reachedEndOfSequence index model.sequence) then
                             ( newModel, Cmd.none )
